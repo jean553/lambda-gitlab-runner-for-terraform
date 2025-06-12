@@ -10,7 +10,7 @@ RUN dnf install -y wget && \
     chmod +x /usr/local/bin/gitlab-runner
 
 RUN dnf install -y unzip && \
-    wget -O terraform.zip https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip && \
+    wget -O terraform.zip https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip && \
     unzip terraform.zip && \
     mv terraform /usr/local/bin/terraform && \
     chmod +x /usr/local/bin/terraform
