@@ -6,10 +6,28 @@ import boto3
 
 def lambda_handler(event, context):
 
-    # p = run(["ls"], capture_output=True)
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name='eu-west-3'
+    )
 
-    env_vars = os.environ.copy()
+    response = client.get_secret_value(
+        SecretId='credentials-for-gitlab-runner'
+    )
+    secret = response['SecretString']
+
+    secret_values = json.loads(secret)
+    os_env_vars = os.environ.copy() # FIXME: really required ?
+
+    env_vars = secret_values.copy()
+    env_vars.update(os_env_vars)
+
     env_vars["HOME"] = "/tmp"
+
+    # Terraform will look for Scaleway keys in a variable names "AWS ..."
+    env_vars["AWS_ACCESS_KEY_ID"] = env_vars["SCW_ACCESS_KEY"]
+    env_vars["AWS_SECRET_ACCESS_KEY"] = env_vars["SCW_SECRET_KEY"]
 
     p = subprocess.Popen([
         "gitlab-runner",
@@ -18,7 +36,7 @@ def lambda_handler(event, context):
         "--url",
         "https://gitlab.com",
         "--registration-token",
-        "xxx",
+        env_vars["GITLAB_RUNNER_REGISTRATION_TOKEN"],
         "--executor",
         "shell",
         "--builds-dir=/tmp/builds",
