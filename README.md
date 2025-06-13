@@ -12,3 +12,5 @@
     - through IAM permissions for AWS infra,
     - through credentials forwarding for scaleway (KMS or other way to access them securily); can be a specific user also (not root)
  * [ ] switch project to public
+
+ * [ ] put everyhting in terraform (secret manager, policies, role, lambda...)
