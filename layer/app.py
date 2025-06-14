@@ -6,10 +6,16 @@ import boto3
 
 def lambda_handler(event, context):
 
+    # gathering all the environment variables is required here,
+    # so that we can pass it to the processes we start later
+    # through the subprocess.Popen() call;
+    # otherwise, binaries would not be found when called
+    os_env_vars = os.environ.copy()
+
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name='eu-west-3'
+        region_name=os_env_vars["AWS_USED_REGION"]
     )
 
     response = client.get_secret_value(
@@ -18,7 +24,6 @@ def lambda_handler(event, context):
     secret = response['SecretString']
 
     secret_values = json.loads(secret)
-    os_env_vars = os.environ.copy() # FIXME: really required ?
 
     env_vars = secret_values.copy()
     env_vars.update(os_env_vars)
