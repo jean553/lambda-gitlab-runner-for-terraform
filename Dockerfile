@@ -1,7 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.13
 
 RUN dnf update && \
-    dnf install -y git hostname findutils
+    dnf install -y git hostname findutils diffutils
 
 RUN dnf install -y wget && \
     wget -O /usr/local/bin/gitlab-runner https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64 && \

@@ -1,0 +1,31 @@
+before_script:
+  - rm -rf .terraform
+
+  - terraform version
+  - terraform init -reconfigure
+
+stages:
+  - validate
+  - plan
+  - apply
+
+validate:
+    stage: validate
+    script:
+        - terraform validate
+        - terraform fmt -check -diff -recursive
+
+plan:
+    stage: plan
+    needs: [validate]
+    script:
+        - terraform plan
+
+apply:
+    stage: apply
+    needs: [plan]
+    script:
+        - terraform apply -auto-approve
+    when: manual
+    only:
+        - master

@@ -30,9 +30,19 @@ def lambda_handler(event, context):
 
     env_vars["HOME"] = "/tmp"
 
-    # Terraform will look for Scaleway keys in a variable names "AWS ..."
-    env_vars["AWS_ACCESS_KEY_ID"] = env_vars["SCW_ACCESS_KEY"]
-    env_vars["AWS_SECRET_ACCESS_KEY"] = env_vars["SCW_SECRET_KEY"]
+    # Terraform will look for Scaleway keys in a variable named "AWS ..."
+    #
+    # - when updating an AWS infrastructure, the lambda has a profile with IAM permission attached that has full privileges,
+    # - when updating a Scaleway infrastructure, the lambda will use Scaleway credentials in AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+    #
+    # IMPORTANT: we do NOT need to set manually the variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_SESSION_TOKEN
+    # when running the lambda function with Terraform that modifies the AWS infrastructure;
+    # this is because AWS automatically grants the required privileges to the lambda by automatically setting these variables;
+    # the granted privileges are based on the role attached to the Lambda
+    # Official AWS documentation: https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
+    if event["TARGET_CLOUD_PLATFORM"] == "scaleway":
+        env_vars["AWS_ACCESS_KEY_ID"] = env_vars["SCW_ACCESS_KEY"]
+        env_vars["AWS_SECRET_ACCESS_KEY"] = env_vars["SCW_SECRET_KEY"]
 
     p = subprocess.Popen([
         "gitlab-runner",
@@ -55,6 +65,10 @@ def lambda_handler(event, context):
         "run"
     ], env=env_vars)
 
-    time.sleep(120)
+    # this parameter must be set accordingly with the lambda expected timeout;
+    # for instance, a run of 150 seconds should result to a timeout of ~200 seconds
+    # (so that the first steps of the lambda are also included in the total time
+    # without making the lambda timeout)
+    time.sleep(500)
 
     return {'statusCode': 200}

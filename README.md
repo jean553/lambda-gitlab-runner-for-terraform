@@ -1,81 +1,98 @@
 # lambda-gitlab-runner-for-terraform
 
-Update your infrastructure from a AWS Lambda, running as a Gitlab runner, ready for CI/CD, executing Terraform commands in an isolated and safe environment.
+Update your infrastructure from an AWS Lambda, running as a GitLab runner, ready for CI/CD, executing Terraform commands in an isolated and safe environment.
 
-## Table of content
+Works on **AWS** and **Scaleway** cloud providers with an **AWS Lambda** running and credentials stored in **AWS Secrets Manager**.
 
- * Why this project ?
- * How it works ?
+## Table of Contents
+
+ * Why this project?
+ * How it works
  * Installation
     * Build the Lambda runtime
     * Create resources
-    * Setup secrets
-    * Configure Gitlab project
+    * Set up secrets
+    * Configure GitLab project
     * Run the script
 
-## Why this project
+## Why This Project
 
-Running Terraform commands is a critical step of your development process. Those commands are meant to modify your infrastructure, including your different environments, especially your production.
+Running Terraform commands is a critical step in your development process. Those commands are meant to modify your infrastructure, including your different environments, especially your production.
 
-Such actions should not be runnable directly from developers, SREs or sysops workstations. Terraform commands usually require a very high level of privileges, due to their nature of impacting the whole infrastructure; for security reasons, granting individual contributors with such high privileges on their own machine is something we do want to avoid. Instead, a single minimalistic, isolated and secured computing unit should handle that specific task.
+Such actions should not be runnable directly from developers', SREs', or sysops' workstations. Terraform commands usually require a very high level of privileges, due to their nature of impacting the entire infrastructure; for security reasons, granting individual contributors such high privileges on their own machines is something we want to avoid. Instead, a single minimalistic, isolated, and secured computing unit should handle that specific task.
 
-Main Terraform actions should only be performed when infrastructure changes are requested, hence why we can fairly assume the main Terraform commands (`plan`, `apply`...) to be part of CI/CD pipelines, along with proposed Merge Requests.
+Main Terraform actions should only be performed when infrastructure changes are requested, hence why we can fairly assume the main Terraform commands (`plan`, `apply`...) to be part of CI/CD pipelines, along with proposed merge requests.
 
-Finally, Gitlab Runner could run on a dedicated lonesome EC2 instance, however, that would require to run a machine all the time, whilest computing resource is only required during the execution of the Terraform command. For cost reasons, we prefer to turn to Lambda functions to host our Gitlab Runner service instead.
+Finally, GitLab Runner could run on a dedicated standalone EC2 instance; however, that would require running a machine all the time, whereas computing resources are only required during the execution of the Terraform command. For cost reasons, we prefer to turn to Lambda functions to host our GitLab Runner service instead.
 
 This project combines:
- * Terraform,
- * AWS Lambda,
- * AWS Secrets Manager,
- * Gitlab CI/CD runner
+ * Terraform
+ * AWS Lambda
+ * AWS Secrets Manager
+ * GitLab CI/CD runner
 
-## How it works ?
+## How It Works
 
- * setup privileged credentials in AWS Secrets Manager to be used by the Gitlab Runner (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `GITLAB_RUNNER_REGISTRATION_TOKEN` ... etc ...), 
- * run a local script (with limited privileges) that starts the Gitlab runner lambda and that keeps it alive,
- * push your Terraform changes and create Merge Requests, Terraform commands will be run into the Lambda function,
- * verify and apply your changes directly through Gitlab CI pipelines
+ * Set up privileged credentials in AWS Secrets Manager to be used by the GitLab Runner (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `GITLAB_RUNNER_REGISTRATION_TOKEN`... etc.)
+ * Run a local script (with limited privileges) that starts the GitLab runner lambda and keeps it alive
+ * Push your Terraform changes and create merge requests; Terraform commands will be run in the Lambda function
+ * Verify and apply your changes directly through GitLab CI pipelines
 
 ## Installation
 
-You need enough privileges to go through the installation step. Simplest way is to use your account **root credentials**. However, keep in mind this is usually a bad practice, and that you should disable access afterwards.
+You need sufficient privileges to go through the installation step. The simplest way is to use your account **root credentials**. However, keep in mind this is usually a bad practice, and you should disable access afterwards.
+
+### Build the Lambda Runtime
+
+Build the runtime:
 
 ```sh
+docker build -t ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/gitlab-runner-terraform-lambda .
 ```
 
------
-
-The installation process covers the following steps:
- * creation of the `gitlab-runner-terraform-setup-user` (using the root account),
- * creation of the resources and deployment of the Lambda image (using the `gitlab-runner-terraform-setup-user`),
-
-### Creation of the setup user
-
-This is the only step that must be performed with **root credentials**.
-
-### Build the Lambda runtime
+Log into your AWS Elastic Container Registry with Docker:
 
 ```sh
-docker build -t gitlab-runner/gitlab-runner-terraform-lambda .
+aws ecr get-login-password | docker login --username AWS --password-stdin ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com
 ```
+
+Push the image to your repository:
 
 ```sh
-
+docker push ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/gitlab-runner-terraform-lambda:latest
 ```
 
-----
+### Create Resources
 
-## TODO
+Copy the `terraform/` folder content into your infrastructure Terraform repository.
 
- * [ ] run gitlab-runner from the lambda (python runtime that calls shell script ?)
- * [ ] transfer Gitlab registration token and aws terraform credentials to the lambda (plain text for now)
- * [ ] use KMS to encrypt and decrypt the AWS credentials for terraform (encrypt on client, decrypt within the lambda)
- * [ ] provide a basic terraform that must be apply as root user to create a local user with the right to run the lambda, and provides the lambda user with all the privileges on the infrastructure
- * [ ] add information about the minimum privileges required for the user that pushes the lambda image on ECR and run the lambda, so that even to do so, no root credentials are required
- * [ ] ensure the image on the ECR is private; the ecr password is generated through aws command only if the person has the required rights (through his aws credentials)
- * [ ] give privileges to the lambda:
-    - through IAM permissions for AWS infra,
-    - through credentials forwarding for scaleway (KMS or other way to access them securily); can be a specific user also (not root)
- * [ ] switch project to public
+Run `terraform plan|apply`. You may use that [Terraform Devbox Container](https://github.com/jean553/docker-devbox-terraform).
 
- * [ ] put everyhting in terraform (secret manager, policies, role, lambda...)
+### Set Up Secrets
+
+Set the secrets corresponding to your AWS/Scaleway environment in **AWS Secrets Manager**.
+
+### Configure GitLab Projects
+
+Copy the `gitlab-ci.yml` file into your Terraform repository. Rename it `.gitlab-ci.yml`.
+
+Push the content to your repository.
+
+### Run the Script
+
+Use the new user `gitlab-runner-terraform-lambda-user` with required limited privileges to start the Lambda function from your local machine.
+
+```sh
+aws lambda invoke \
+    --profile aws \                                            # in case you have several profiles...
+    --cli-connect-timeout 600 \                                # the lambda runs ~500 seconds by default, so CLI read timeout is at 600 seconds
+    --cli-read-timeout 600 \
+    --cli-binary-format raw-in-base64-out \
+    --function-name gitlab-runner-terraform-lambda \
+    --payload '{"TARGET_CLOUD_PLATFORM": "scaleway"}' \        # use "aws" or "scaleway" (cloud platform where your infrastructure is hosted)
+    /dev/stdout
+```
+
+Once the lambda is running, the GitLab runner is running as well.
+
+The first time, you may want to enable the runner in your GitLab project (CI/CD settings and Runners).
