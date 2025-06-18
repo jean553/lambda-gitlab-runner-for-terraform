@@ -9,14 +9,15 @@ Works on **AWS** and **Scaleway** cloud providers with an **AWS Lambda** running
 
 ## Table of Contents
 
- * Why this project?
- * How it works
- * Installation
-    * Build the Lambda runtime
-    * Create resources
-    * Set up secrets
-    * Configure GitLab project
-    * Run the script
+ * [Why this project?](#why-this-project)
+ * [Warranty and Security disclaimer](#warranty-and-security-disclaimer)
+ * [How it works](#how-it-works)
+ * [Installation](#installation)
+   * [Build the Lambda runtime](#build-the-lambda-runtime)
+   * [Create resources](#create-resources)
+   * [Set up secrets](#set-up-secrets)
+   * [Configure GitLab project](#configure-gitlab-project)
+   * [Run the script](#run-the-script)
 
 ## Why This Project
 
@@ -33,6 +34,18 @@ This project combines:
  * AWS Lambda
  * AWS Secrets Manager
  * GitLab CI/CD runner
+
+## Warranty and Security disclaimer
+
+This program is provided "as is" without warranty of any kind. The author makes no representations or warranties regarding the security, reliability, or safety of this software.
+
+By using this program, you acknowledge and agree that:
+ * You assume all risks associated with its use
+ * The author shall not be held liable for any security vulnerabilities, data breaches, system compromises, or other security-related issues that may arise from the use of this software
+ * You are solely responsible for implementing appropriate security measures and conducting your own security assessments
+ * It is your responsibility to ensure the program meets your security requirements before deployment
+
+Use at your own risk. Always follow security best practices and conduct thorough testing in a safe environment before using this program in production systems.
 
 ## How It Works
 
