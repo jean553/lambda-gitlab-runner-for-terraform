@@ -4,6 +4,9 @@ Update your infrastructure from an AWS Lambda, running as a GitLab runner, ready
 
 Works on **AWS** and **Scaleway** cloud providers with an **AWS Lambda** running and credentials stored in **AWS Secrets Manager**.
 
+![first screenshot](screenshots/screenshot_1.png)
+![second screenshot](screenshots/screenshot_2.gif)
+
 ## Table of Contents
 
  * Why this project?
